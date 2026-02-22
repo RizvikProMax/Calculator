@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard - School Project</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- CSS Styling --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #eef2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Responsive layout for smaller screens */
+        @media (max-width: 900px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #555;
+            border-bottom: 2px solid #eef2f5;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* High Rain Warning Banner */
+        .warning-banner {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 5px solid #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Grid for smaller stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0ea5e9;
+            margin-top: 5px;
+        }
+
+        /* Hourly Weather Scroll */
+        .hourly-container {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .hourly-item {
+            min-width: 80px;
+            background: #f0f9ff;
+            text-align: center;
+            padding: 15px 10px;
+            border-radius: 8px;
+            border: 1px solid #bae6fd;
+        }
+
+        /* Lists for weekly and other locations */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eef2f5;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .main-temp {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🌍 Global Weather Dashboard</h1>
+        <p>School Project Presentation</p>
+    </header>
+
+    <div class="dashboard-container">
+        
+        <div class="left-column">
+            
+            <div class="warning-banner" id="rain-warning">
+                ⚠️ High Rain Warning: Heavy showers expected in the next 2-3 hours. Please carry an umbrella!
+            </div>
+
+            <div class="card text-center">
+                <h2 class="card-title">Current Location: Shimla, India</h2>
+                <div class="main-temp">15°C</div>
+                <p><strong>Condition:</strong> Heavy Rain</p>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Hourly Forecast</h3>
+                <div class="hourly-container" id="hourly-weather">
+                    </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Current Details</h3>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div>Wind Speed</div>
+                        <div class="stat-value">18 km/h</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>Humidity</div>
+                        <div class="stat-value">88%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>Air Quality (AQI)</div>
+                        <div class="stat-value">42 (Good)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>Sun Set / Rise</div>
+                        <div class="stat-value" style="font-size: 1.1rem;">🌅 06:45 AM<br>🌇 06:15 PM</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Rain Graph (Past 7 Days)</h3>
+                <canvas id="rainGraph" height="100"></canvas>
+            </div>
+
+        </div>
+
+        <div class="right-column">
+            
+            <div class="card">
+                <h3 class="card-title">7-Day Weather Report</h3>
+                <div id="weekly-forecast">
+                    </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Other Global Locations</h3>
+                <div id="other-locations">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 1. Generate Hourly Data
+        const hourlyContainer = document.getElementById('hourly-weather');
+        const times = ["12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM"];
+        const temps = ["15°C", "14°C", "13°C", "12°C", "11°C", "10°C", "9°C"];
+        
+        for (let i = 0; i < times.length; i++) {
+            hourlyContainer.innerHTML += `
+                <div class="hourly-item">
+                    <strong>${times[i]}</strong><br>
+                    ${temps[i]}
+                </div>
+            `;
+        }
+
+        // 2. Generate 1 Week Forecast
+        const weeklyContainer = document.getElementById('weekly-forecast');
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const weeklyTemps = ["16°C", "18°C", "14°C", "19°C", "21°C", "20°C", "17°C"];
+        const conditions = ["Rain", "Cloudy", "Rain", "Sunny", "Sunny", "Partly Cloudy", "Showers"];
+
+        for (let i = 0; i < days.length; i++) {
+            weeklyContainer.innerHTML += `
+                <div class="list-item">
+                    <span><strong>${days[i]}</strong></span>
+                    <span>${conditions[i]}</span>
+                    <span>${weeklyTemps[i]}</span>
+                </div>
+            `;
+        }
+
+        // 3. Generate 7 Other Locations Data
+        const locationsContainer = document.getElementById('other-locations');
+        const cities = [
+            { name: "Tokyo", temp: "22°C", desc: "Clear" },
+            { name: "New York", temp: "8°C", desc: "Cloudy" },
+            { name: "London", temp: "12°C", desc: "Drizzle" },
+            { name: "Dubai", temp: "35°C", desc: "Sunny" },
+            { name: "Sydney", temp: "25°C", desc: "Windy" },
+            { name: "Paris", temp: "14°C", desc: "Clear" },
+            { name: "Mumbai", temp: "32°C", desc: "Humid" }
+        ];
+
+        cities.forEach(city => {
+            locationsContainer.innerHTML += `
+                <div class="list-item">
+                    <span><strong>${city.name}</strong></span>
+                    <span>${city.desc}</span>
+                    <span>${city.temp}</span>
+                </div>
+            `;
+        });
+
+        // 4. Initialisze Chart.js for the Rain Graph
+        const ctx = document.getElementById('rainGraph').getContext('2d');
+        const rainGraph = new Chart(ctx, {
+            type: 'bar', // Can be 'line' or 'bar'
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Rainfall Amount (mm)',
+                    data: [12, 19, 3, 5, 2, 8, 24],
+                    backgroundColor: '#0ea5e9',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
